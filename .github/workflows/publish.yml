@@ -2,7 +2,8 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    image: python:3.11-slim
+    container:
+      image: python:3.11-slim
     environment: Publish
     env:
       PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
