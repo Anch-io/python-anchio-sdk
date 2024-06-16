@@ -35,7 +35,7 @@ def test_main_monitor_running_stable_5_seconds():
 @pytest.mark.skipif(os.environ.get("BLOCK_INTEGRATION_TESTS", False), reason="This is an integrations test")
 def test_main_monitor_integration_test():
     service = AnchioInit(
-        token="anch-QPafhpJplosBIGr6Buyc1poqPPqBRzHZ2ptXduD9CcCrHkKwJHgrVZuyxRGbABE4o8S5-AcGjyjTHKte1m2grg",
+        token=os.environ["ANCHIO_TOKEN"],
         max_queue_size=100
     )
     raise_exception = False
@@ -54,6 +54,7 @@ def test_main_monitor_integration_test():
     assert not raise_exception
 
 @pytest.mark.asyncio
+@patch('anchio_sdk.main.DefaultApi', MockDefaultApi)
 async def test_run_inside_of_async_context():
     service = AnchioInit(
         token="test",
@@ -63,7 +64,7 @@ async def test_run_inside_of_async_context():
     try:
         for i in range(500):
             sleep(0.002)
-            service.send_entry({"value": 1, "metric": "A", "service": "Service"}, max_attempts=1)
+            await service.async_send_entry({"value": 1, "metric": "A", "service": "Service"}, max_attempts=1)
     except AnchioMaxEnqueuedAttempts:
         raise_exception = True
     sleep(5)

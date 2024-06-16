@@ -1,5 +1,6 @@
 
 
+from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 import httpx
 from threading import Thread
@@ -128,7 +129,37 @@ class AnchioInit:
         
         # NOTE: We want to be async compatible so we need to check if we're in a loop's context
         # if we're not we'll shut out loop down after we're done
-        loop, is_loop_external = self.get_loop()
+        with ThreadPoolExecutor(1) as executor:
+            while not posted:
+                try:
+                    if attempts >= max_attempts:
+                        raise AnchioMaxEnqueuedAttempts
+                    # NOTE: We automatically round the max_queue_size to the nearest 10th
+                    # of the max to prevent the queue from getting too large or getting to close to the
+                    # max size
+                    executor.submit(asyncio.run, self.queue.put(self.process_entry(entry))).result()
+                    if self.queue.qsize() > self.max_queue_size - 1:
+                        raise Full
+                    posted = True
+                except Full:
+                    sync_sleep(1)
+                    attempts += 1
+
+
+    async def async_send_entry(
+            self,
+            entry: MeterEntryArgs,
+            max_attempts = 10
+    ) -> None:
+        posted = False
+        attempts = 0
+
+        # NOTE This logic is to ensure that the thread is running when we try to post
+        if not (self.thread is not None and self.thread.is_alive()):
+            self.thread = self.start()
+        
+        # NOTE: We want to be async compatible so we need to check if we're in a loop's context
+        # if we're not we'll shut out loop down after we're done
         while not posted:
             try:
                 if attempts >= max_attempts:
@@ -136,19 +167,14 @@ class AnchioInit:
                 # NOTE: We automatically round the max_queue_size to the nearest 10th
                 # of the max to prevent the queue from getting too large or getting to close to the
                 # max size
-                if is_loop_external:
-                    loop.run_in_executor(None, self.queue.put, self.process_entry(entry))
-                else:
-                    loop.run_until_complete(self.queue.put(self.process_entry(entry))) 
+                await self.queue.put(self.process_entry(entry))
                 if self.queue.qsize() > self.max_queue_size - 1:
                     raise Full
                 posted = True
             except Full:
                 sync_sleep(1)
                 attempts += 1
-                loop.run_until_complete(self.post_entries())
-        if not is_loop_external:
-            loop.close()
+                await self.post_entries()
 
     def wrap_client(self, client: httpx.Client) -> DefaultApi:
         def request(callable):
