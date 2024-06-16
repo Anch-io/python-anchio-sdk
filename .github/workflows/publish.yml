@@ -23,4 +23,4 @@ jobs:
           username = __token__
           password = $PYPI_TOKEN" > ~/.pypirc
 
-          python -m twine upload --repository pypi dist/*
+          poetry run python -m twine upload --repository pypi dist/*
