@@ -13,7 +13,7 @@ jobs:
           pip install wheel twine
       - name: Build Wheel
         run: |
-          python setup.py sdist
+          python -m build
       - name: Publish to PyPI
         run: |
           echo "[pypi]
