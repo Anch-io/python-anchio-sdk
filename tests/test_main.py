@@ -52,6 +52,23 @@ def test_main_monitor_integration_test():
         raise_exception = True
     sleep(5)
     assert not raise_exception
+
+@pytest.mark.asyncio
+async def test_run_inside_of_async_context():
+    service = AnchioInit(
+        token="test",
+        max_queue_size=100
+    )
+    raise_exception = False
+    try:
+        for i in range(500):
+            sleep(0.002)
+            service.send_entry({"value": 1, "metric": "A", "service": "Service"}, max_attempts=1)
+    except AnchioMaxEnqueuedAttempts:
+        raise_exception = True
+    sleep(5)
+    assert not raise_exception
+
     
     
 

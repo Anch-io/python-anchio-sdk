@@ -136,7 +136,10 @@ class AnchioInit:
                 # NOTE: We automatically round the max_queue_size to the nearest 10th
                 # of the max to prevent the queue from getting too large or getting to close to the
                 # max size
-                loop.run_until_complete(self.queue.put(self.process_entry(entry))) 
+                if is_loop_external:
+                    loop.run_in_executor(None, self.queue.put, self.process_entry(entry))
+                else:
+                    loop.run_until_complete(self.queue.put(self.process_entry(entry))) 
                 if self.queue.qsize() > self.max_queue_size - 1:
                     raise Full
                 posted = True
