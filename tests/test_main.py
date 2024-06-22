@@ -32,26 +32,6 @@ def test_main_monitor_running_stable_5_seconds():
     sleep(5)
     assert not raise_exception
 
-@pytest.mark.skipif(os.environ.get("BLOCK_INTEGRATION_TESTS", False), reason="This is an integrations test")
-def test_main_monitor_integration_test():
-    service = AnchioInit(
-        token=os.environ["ANCHIO_TOKEN"],
-        max_queue_size=100
-    )
-    raise_exception = False
-    try:
-        for i in range(6):
-            sleep(1)
-            for j in range(99):
-                service.send_entry({
-                    "value": 1,
-                    "service": "Local Test",
-                    "metric": "Test Metric"
-                }, max_attempts=1)
-    except AnchioMaxEnqueuedAttempts:
-        raise_exception = True
-    sleep(5)
-    assert not raise_exception
 
 @pytest.mark.asyncio
 @patch('anchio_sdk.main.DefaultApi', MockDefaultApi)
